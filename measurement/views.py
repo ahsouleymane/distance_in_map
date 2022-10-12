@@ -13,7 +13,7 @@ from ipware import get_client_ip
 import json, urllib
 # Create your views here.
 
-class locationAPI(APIView):
+""" class locationAPI(APIView):
 
     def get(self, request, format=None):
         client_ip, ip_routable = get_client_ip(request)
@@ -34,7 +34,7 @@ class locationAPI(APIView):
         data1 = json.loads(respon.read())
         data1['client_ip'] = client_ip
         data1['ip_type'] = ip_type
-        return Response(data1)
+        return Response(data1) """
 
 
 def calculate_distance_view(request):
@@ -48,13 +48,25 @@ def calculate_distance_view(request):
     form = MeasurementModelForm(request.POST or None)
     geolocator = Nominatim(user_agent='measurement')
 
+    ## Methode 1
+
     ip_ = get_ip_address(request)
-    print(ip_)
+    #print(ip_)
     ip = '154.127.94.179'
 
     country, city, lat, lon = get_geo(ip)
 
     location = geolocator.geocode(city)
+
+    # Location coordinates
+    l_lat = lat
+    l_lon = lon
+
+    #print(l_lat, l_lon)
+
+
+    ## Methode 2
+
 
     # Location coordinates using json
     r = requests.get('https://get.geojs.io/')
@@ -65,24 +77,18 @@ def calculate_distance_view(request):
     url = 'https://get.geojs.io/v1/ip/geo/'+ip_add+'.json'
     geo_request = requests.get(url)
     geo_data = geo_request.json()
-    print(geo_data)
+    #print(geo_data)
 
-    x_lat = geo_data['latitude']
-    x_lon = geo_data['longitude']
+    # Location coordinates
+    x_lat = float(geo_data['latitude'])
+    x_lon = float(geo_data['longitude'])
 
     print(x_lat, x_lon)
 
-
-    # Location coordinates
-    l_lat = lat
-    l_lon = lon
-
-    #print(l_lat, l_lon)
-
-    pointA = (l_lat, l_lon)
+    pointA = (x_lat, x_lon)
 
     # Initial folium map
-    m = folium.Map(width=1600, height=600, location=get_center_coordinates(x_lat, x_lon), zoom_start=8)
+    m = folium.Map(width=1600, height=600, location=get_center_coordinates(x_lat, x_lon), zoom_start=12)
 
     # Location marker
     folium.Marker([x_lat, x_lon], tooltip='click here for more', popup=city['city'], 
@@ -93,6 +99,8 @@ def calculate_distance_view(request):
         destination_ = form.cleaned_data.get('destination')
         destination = geolocator.geocode(destination_)
 
+        print(destination)
+
         # Destination coordinates
         d_lat = destination.latitude
         d_lon = destination.longitude
@@ -102,8 +110,10 @@ def calculate_distance_view(request):
         # Distance calculation
         distance = round(geodesic(pointA, pointB).km, 2)
 
+        print(str(distance) + 'km')
+
         # Folium map modification
-        m = folium.Map(width=1600, height=600, location=get_center_coordinates(l_lat, l_lon, d_lat, d_lon), 
+        m = folium.Map(width=1600, height=600, location=get_center_coordinates(x_lat, x_lon, d_lat, d_lon), 
             zoom_start=get_zoom(distance))
 
         # Location marker
